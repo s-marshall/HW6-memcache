@@ -54,30 +54,62 @@ end
 
 $CACHE = Dalli::Client.new('localhost:11211')
 $start_time = 0
-$time_now = 0
+$post_start_time = 0
+
+def current_time
+  return Time.now.sec + 60 * Time.now.min
+end
+
+def get_listing(key)
+  string = $CACHE.get(key)
+  listing = nil
+  if string != nil
+    listing = Marshal.load(string)
+  end
+  return listing
+end
+
+def cache(key, listing)
+  string = Marshal.dump(listing)
+  $CACHE.set(key, string)
+end
 
 def top_ten_blogs(update = false)
   key = 'top'
-  blog_string = $CACHE.get(key)
-  blog_listing = nil
-  if blog_string != nil
-    blog_listing = Marshal.load(blog_string)
-  end
+  blog_listing = get_listing(key)
 
   if (blog_listing == nil) || update
     logger.info 'DB Query'
+    $start_time = current_time
     blog_listing = Post.all(:order => :created.desc, :limit => 10)
-    blog_string = Marshal.dump(blog_listing)
-    $CACHE.set(key, blog_string)
+    cache(key, blog_listing)
   end
   return blog_listing
 end
 
+def get_perma_post(k)
+  key = k.to_s
+  post_listing = get_listing(key)
+
+  if (post_listing == nil)
+    logger.info 'permalink DB Query'
+    $post_start_time = current_time
+    post_listing = Post.first(:id => k)
+    cache(key, post_listing)
+  end
+  return post_listing
+end
+
 def render_blogs(subject = '', content = '', error = '')
-  $time_now = Time.now.sec + 60 * Time.now.min
-  @age = $time_now - $start_time
+  @age = current_time - $start_time
   blog_listing = top_ten_blogs
   haml :blogs, :locals => {:subject => subject, :content => content, :error => error, :blog_listing => blog_listing}
+end
+
+def render_post(id)
+  @age = current_time - $post_start_time
+  perma_post = get_perma_post(id.to_s)
+  haml :post, :locals => {:subject => perma_post.subject, :content => perma_post.content}
 end
 
 def validate_username(username)
@@ -204,8 +236,7 @@ get '/welcome' do
     session[:username] = nil
     haml :welcome
   else
-    $start_time = Time.now.sec + 60 * Time.now.min
-    $time_now = $start_time
+    $start_time = current_time
     redirect '/blog'
   end
 end
@@ -224,7 +255,7 @@ end
 
 get '/.json' do
   content_type :json
-  blogs_listing = Post.all(:order => :created.desc)
+  blogs_listing = Post.all(:order => :created.desc, :limit => 10)
   blogs_listing.to_json
 end
 
@@ -236,6 +267,7 @@ post '/newpost' do
   if newest_post.subject.length > 0 && newest_post.content.length > 0
     post = Post.create(:subject => params[:subject], :content => params[:content])
     top_ten_blogs(true)
+    $post_start_time = current_time
     redirect '/blog/' + post.id.to_s
   else
     error = 'Add missing subject and/or content!'
@@ -244,7 +276,7 @@ post '/newpost' do
 end
 
 get %r{/blog/(?<permalink>[\d]+)(?<format>[\.json]*)} do
-  perma_post = Post.first(:id => params[:permalink])
+  perma_post = get_perma_post(params[:permalink])
 
   if perma_post == nil
     render_blogs('', '', 'That post does not exist!!')
@@ -252,6 +284,7 @@ get %r{/blog/(?<permalink>[\d]+)(?<format>[\.json]*)} do
     content_type :json
     perma_post.to_json
   else
+    @age = current_time - $post_start_time
     haml :post, :locals => {:subject => perma_post.subject, :content => perma_post.content}
   end
 end
