@@ -1,0 +1,46 @@
+!!! 5
+%html
+  %head
+    %title Unit 4 Sign Up
+    :css
+      .label{text-align: right}
+      .error{color: red}
+  %body
+    %h2 Sign Up
+    %form{:method => 'post'}
+      %table{:style => 'border: 1px'}
+        %tr
+          %td.label
+            Username
+          %td
+            %input{:type => 'text', :name => 'username', :value => %Q{#{locals[:username]}}}
+          %td.error
+            = %Q{#{@invalid_username}}
+        %tr
+          %td.label
+            Password
+          %td
+            %input{:type => 'password', :name => 'password', :value => %Q{#{locals[:password]}}}
+          %td.error
+            = %Q{#{@invalid_password}}
+        %tr
+          %td.label
+            Verify Password
+          %td
+            %input{:type => 'password', :name => 'verify', :value => %Q{#{locals[:verify]}}}
+          %td.error
+            = %Q{#{@invalid_verify}}
+        %tr
+          %td.label
+            Email (optional)
+          %td
+            %input{:type => 'text', :name => 'email', :value => %Q{#{locals[:email]}}}
+          %td.error
+            = %Q{#{@invalid_email}}
+      %br
+      %input{:type => 'submit', :value => 'Sign up'}
+      %hr
+    If you have already registered, just login.
+    %form{:method => 'get', :action => '/login'}
+      %input{:type => 'submit', :value => 'Login'}
+

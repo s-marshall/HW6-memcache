@@ -1,0 +1,7 @@
+%html
+  %p
+    Welcome, #{@username}!!
+    
+  %form{:method => 'get', :action => '/blog'}
+    %input{:type => 'submit', :value => 'Click to continue'}
+

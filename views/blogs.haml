@@ -1,0 +1,47 @@
+!!! 5
+%html
+  %head
+    %title Bloggie
+    %link{:rel => "stylesheet", :type => "text/css", :href => "/css/styles.css"}
+    
+  %body
+    %h1 Bloggie
+    .login-area
+      %a.login-link{:href => '/login'}login
+      |
+      %a.login-link{:href => '/signup'}signup
+    %hr
+    %form{:method => 'post', :action => '/newpost'}
+      %label
+        %div Subject
+        %input{:type => 'text', :name => 'subject', :value => %Q{#{locals[:subject]}}}
+
+      %label
+        %div.content Content
+        =find_and_preserve do
+          %textarea{:name => 'content'}
+            = %Q{#{locals[:content]}}
+
+      .error
+        = %Q{#{locals[:error]}}
+      %br
+      %input{:type => 'submit', :value => 'Add to blog'}
+    %form{:method => 'get', :action => '/logout'}
+      %input{:type => 'submit', :value => 'Logout'}
+    %hr
+    
+    %div.content Blog Listing
+    %hr
+    - locals[:blog_listing].each do |blog|
+      .post-heading
+        #{blog.subject}
+        .post-date 
+          - date = blog.created.asctime.split
+          = %Q{#{date[1]} #{date[2]}, #{date[4]}}
+      %pre.post-content
+        :preserve
+          #{blog.content}
+
+    .age
+      %p
+        Queried #{@age} seconds ago
