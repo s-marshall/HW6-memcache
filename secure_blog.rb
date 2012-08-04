@@ -55,7 +55,7 @@ end
 $CACHE = Dalli::Client.new('localhost:11211')
 
 def current_time
-  return Time.now.sec + 60 * Time.now.min
+  return Integer::truncate(Time.now.sec + 60 * Time.now.min)
 end
 
 $start_time = current_time
@@ -292,7 +292,7 @@ end
 
 get '/blog/flush' do
   $CACHE.flush_all
-  $post_start_time = current_time
+  $post_start_time = Integer::truncate current_time
   $start_time = $post_start_time
   redirect '/blog'
 end
