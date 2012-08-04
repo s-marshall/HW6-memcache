@@ -1,1 +1,1 @@
-Blog with login and signup
+Blog with memcache
