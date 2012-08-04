@@ -290,7 +290,7 @@ get %r{/blog/(?<permalink>[\d]+)(?<format>[\.json]*)} do
   end
 end
 
-get '/flush'do
+get '/flush' do
   $start_time = current_time
   $post_start_time = $start_time
   $CACHE.flush_all
