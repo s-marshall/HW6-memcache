@@ -11,7 +11,7 @@
       |
       %a.login-link{:href => '/signup'}signup
     %hr
-    %form{:method => 'post', :action => '/newpost'}
+    %form{:method => 'post', :action => '/blog/newpost'}
       %label
         %div Subject
         %input{:type => 'text', :name => 'subject', :value => %Q{#{locals[:subject]}}}

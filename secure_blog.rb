@@ -206,7 +206,7 @@ post '/signup' do
     session[:username] = make_secure_value params[:username]
     entry = Password.create(:username => session[:username], :password => password_hash)
     session[:valid_password] = true
-    redirect '/welcome'
+    redirect '/blog/welcome'
   else
     write_form(@invalid_username, @invalid_password, @invalid_verify, @invalid_email)
   end
@@ -224,14 +224,14 @@ post '/login' do
     session[:username] = make_secure_value @username
     @invalid_login = ''
     session[:valid_password] = true
-    redirect '/welcome'
+    redirect '/blog/welcome'
   else
     @invalid_login = 'Invalid login'
   end
   haml :login
 end
 
-get '/welcome' do
+get '/blog/welcome' do
   if session[:username]
     @username = get_value_from_hash session[:username]
     session[:username] = nil
@@ -260,7 +260,7 @@ get '/.json' do
   blogs_listing.to_json
 end
 
-post '/newpost' do
+post '/blog/newpost' do
   newest_post.subject = params[:subject]
   newest_post.content = params[:content]
   error = ''
@@ -290,9 +290,9 @@ get %r{/blog/(?<permalink>[\d]+)(?<format>[\.json]*)} do
   end
 end
 
-get '/flush' do
+get '/blog/flush' do
   $CACHE.flush_all
   $post_start_time = current_time
   $start_time = $post_start_time
-  redirect '/welcome'
+  redirect '/blog/welcome'
 end
