@@ -55,7 +55,7 @@ end
 $CACHE = Dalli::Client.new('localhost:11211')
 
 def current_time
-  return Integer::truncate(Time.now.sec + 60 * Time.now.min)
+  return Time.now.sec + 60 * Time.now.min
 end
 
 $start_time = current_time
@@ -238,6 +238,7 @@ get '/blog/welcome' do
     haml :welcome
   else
     $start_time = current_time
+    $post_start_time = $start_time
     redirect '/blog'
   end
 end
@@ -292,7 +293,7 @@ end
 
 get '/blog/flush' do
   $CACHE.flush_all
-  $post_start_time = Integer::truncate current_time
+  $post_start_time = current_time
   $start_time = $post_start_time
-  redirect '/blog'
+  redirect '/blog/welcome'
 end
