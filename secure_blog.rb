@@ -53,12 +53,13 @@ class NewestPost
 end
 
 $CACHE = Dalli::Client.new('localhost:11211')
-$start_time = 0
-$post_start_time = 0
 
 def current_time
   return Time.now.sec + 60 * Time.now.min
 end
+
+$start_time = current_time
+$post_start_time = $start_time
 
 def get_listing(key)
   string = $CACHE.get(key)
@@ -74,7 +75,7 @@ def cache(key, listing)
   $CACHE.set(key, string)
 end
 
-def top_ten_blogs(update = false)
+def get_top_ten_blogs(update = false)
   key = 'top'
   blog_listing = get_listing(key)
 
@@ -102,7 +103,7 @@ end
 
 def render_blogs(subject = '', content = '', error = '')
   @age = current_time - $start_time
-  blog_listing = top_ten_blogs
+  blog_listing = get_top_ten_blogs
   haml :blogs, :locals => {:subject => subject, :content => content, :error => error, :blog_listing => blog_listing}
 end
 
@@ -266,7 +267,7 @@ post '/newpost' do
 
   if newest_post.subject.length > 0 && newest_post.content.length > 0
     post = Post.create(:subject => params[:subject], :content => params[:content])
-    top_ten_blogs(true)
+    get_top_ten_blogs(true)
     $post_start_time = current_time
     redirect '/blog/' + post.id.to_s
   else
@@ -287,4 +288,11 @@ get %r{/blog/(?<permalink>[\d]+)(?<format>[\.json]*)} do
     @age = current_time - $post_start_time
     haml :post, :locals => {:subject => perma_post.subject, :content => perma_post.content}
   end
+end
+
+get '/flush'do
+  $start_time = current_time
+  $post_start_time = $start_time
+  $CACHE.flush_all
+  redirect '/blog'
 end
