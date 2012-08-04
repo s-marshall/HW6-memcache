@@ -291,8 +291,8 @@ get %r{/blog/(?<permalink>[\d]+)(?<format>[\.json]*)} do
 end
 
 get '/flush' do
-  $start_time = current_time
-  $post_start_time = $start_time
   $CACHE.flush_all
+  $post_start_time = current_time
+  $start_time = current_time
   redirect '/blog'
 end
