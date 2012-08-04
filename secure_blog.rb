@@ -162,11 +162,11 @@ end
 
 newest_post = NewestPost.new
 
-get '/signup' do
+get '/blog/signup' do
   haml :signup
 end
 
-post '/signup' do
+post '/blog/signup' do
   @valid_input = true
   session[:valid_password] = false
 
