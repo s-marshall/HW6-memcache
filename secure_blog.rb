@@ -53,63 +53,63 @@ class NewestPost
 end
 
 $CACHE = Dalli::Client.new('localhost:11211')
+$CACHE.flush_all
 
 def current_time
   return Time.now.sec + 60 * Time.now.min
 end
 
-$start_time = current_time
-$post_start_time = $start_time
-
-def get_listing(key)
+def fetch(key)
   string = $CACHE.get(key)
   listing = nil
+  birthday = nil
   if string != nil
-    listing = Marshal.load(string)
+    listing, birthday = Marshal.load(string)
   end
-  return listing
+
+  if listing != nil
+	  age = current_time - birthday
+	else
+	  age = 0
+	end
+
+  return listing, age
 end
 
-def cache(key, listing)
-  string = Marshal.dump(listing)
+def cache(key, value)
+  string = Marshal.dump(value)
   $CACHE.set(key, string)
 end
 
 def get_top_ten_blogs(update = false)
   key = 'top'
-  blog_listing = get_listing(key)
-
+  blog_listing, age = fetch(key)
+  puts age
   if (blog_listing == nil) || update
-    logger.info 'DB Query'
-    $start_time = current_time
     blog_listing = Post.all(:order => :created.desc, :limit => 10)
-    cache(key, blog_listing)
+    cache(key, [blog_listing, current_time])
   end
-  return blog_listing
+  return [blog_listing, age]
+end
+
+def render_blogs(subject = '', content = '', error = '')
+  blog_listing, @age = get_top_ten_blogs
+  haml :blogs, :locals => {:subject => subject, :content => content, :error => error, :blog_listing => blog_listing}
 end
 
 def get_perma_post(k)
   key = k.to_s
-  post_listing = get_listing(key)
+  post_listing, age = fetch(key)
 
   if (post_listing == nil)
-    logger.info 'permalink DB Query'
-    $post_start_time = current_time
     post_listing = Post.first(:id => k)
-    cache(key, post_listing)
+    cache(key, [post_listing, current_time])
   end
-  return post_listing
-end
-
-def render_blogs(subject = '', content = '', error = '')
-  @age = current_time - $start_time
-  blog_listing = get_top_ten_blogs
-  haml :blogs, :locals => {:subject => subject, :content => content, :error => error, :blog_listing => blog_listing}
+  return [post_listing, age]
 end
 
 def render_post(id)
-  @age = current_time - $post_start_time
-  perma_post = get_perma_post(id.to_s)
+  perma_post, @age = get_perma_post(id.to_s)
   haml :post, :locals => {:subject => perma_post.subject, :content => perma_post.content}
 end
 
@@ -237,8 +237,7 @@ get '/blog/welcome' do
     session[:username] = nil
     haml :welcome
   else
-    $start_time = current_time
-    $post_start_time = $start_time
+    $CACHE.flush_all
     redirect '/blog'
   end
 end
@@ -269,7 +268,6 @@ post '/blog/newpost' do
   if newest_post.subject.length > 0 && newest_post.content.length > 0
     post = Post.create(:subject => params[:subject], :content => params[:content])
     get_top_ten_blogs(true)
-    $post_start_time = current_time
     redirect '/blog/' + post.id.to_s
   else
     error = 'Add missing subject and/or content!'
@@ -278,7 +276,7 @@ post '/blog/newpost' do
 end
 
 get %r{/blog/(?<permalink>[\d]+)(?<format>[\.json]*)} do
-  perma_post = get_perma_post(params[:permalink])
+  perma_post, @age = get_perma_post(params[:permalink])
 
   if perma_post == nil
     render_blogs('', '', 'That post does not exist!!')
@@ -286,14 +284,11 @@ get %r{/blog/(?<permalink>[\d]+)(?<format>[\.json]*)} do
     content_type :json
     perma_post.to_json
   else
-    @age = current_time - $post_start_time
     haml :post, :locals => {:subject => perma_post.subject, :content => perma_post.content}
   end
 end
 
 get '/blog/flush' do
   $CACHE.flush_all
-  $post_start_time = current_time
-  $start_time = $post_start_time
-  redirect '/blog/welcome'
+  redirect '/blog'
 end
