@@ -294,5 +294,5 @@ get '/blog/flush' do
   $CACHE.flush_all
   $post_start_time = current_time
   $start_time = $post_start_time
-  redirect '/blog/welcome'
+  redirect '/blog'
 end
